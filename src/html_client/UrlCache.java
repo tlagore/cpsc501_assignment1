@@ -93,31 +93,28 @@ public class UrlCache {
      */
 	public void getObject(String url) throws UrlCacheException {
 		byte[] input = new byte[10*1024];
+		UrlConnection connection = new UrlConnection(url);
 		Socket socket;
 		HttpHeader header;
 		InputStream inputStream;
 		PrintWriter outputStream;
 		String headerInfo = "", 
-			command,
-			host = getHostnameFromUrl(url),
-			objectPath = getObjectPathFromUrl(url);
-		int amountRead;
-		host = host.indexOf(":") == -1 ? host : host.substring(0, host.indexOf(":"));
-		String standardizedUrl = host + objectPath;
+			command;
 		
-			
+		int amountRead;
+
 		//get GET or conditional GET command
 		command = getHttpGetCommand(url);
 		
 		try
 		{				
-			socket = getSocket(url);
+			socket = connection.get_Socket();
 			outputStream = new PrintWriter(socket.getOutputStream());
 			inputStream = socket.getInputStream();
 
 			//write command to socket outputstream
 			outputStream.print(command);
-			outputStream.print("Host: " + host + "\r\n");
+			outputStream.print("Host: " + connection.get_Host() + "\r\n");
 			outputStream.print("\r\n");
 			outputStream.flush();
 			
@@ -131,7 +128,7 @@ public class UrlCache {
 				
 				if (header.get_StatusCode() == 200)
 				{
-					File file = createDirectoryAndFile(standardizedUrl);
+					File file = createDirectoryAndFile(connection.get_StandardizedUrl());
 					FileOutputStream fileOut = new FileOutputStream(file, true);
 					fileOut.write(input);
 					
@@ -142,7 +139,7 @@ public class UrlCache {
 					}
 					
 					fileOut.close();
-					_Catalog.put(standardizedUrl, header.get_LastModified() == null ? 0 : header.get_LastModified());
+					_Catalog.put(connection.get_StandardizedUrl(), header.get_LastModified() == null ? 0 : header.get_LastModified());
 					writeCatalog();
 				}else if (header.get_StatusCode()  == 304)
 				{
@@ -164,44 +161,6 @@ public class UrlCache {
 			System.out.println("Error: " + ex.getMessage());
 			ex.printStackTrace();
 		}
-	}
-	
-	/**
-	 * 
-	 * Receives the unmodified url in the form host:port/location/of/file and opens a socket
-	 * to the specified host on the specified port.  If no port is specified, a default port of 80 is 
-	 * used.
-	 * 
-	 * @param url the unmodified url of the request
-	 * @return the created Socket if successful
-	 * @throws IOException If the socket cannot be created due to a malformed url or bad connection, an exception will be thrown.
-	 */
-	private Socket getSocket(String url) throws IOException
-	{
-		Socket socket = null;
-		String host = getHostnameFromUrl(url);
-		int indexOfColon = host.indexOf(":");
-		int port;
-		
-		//tries to parse the port number from the url, otherwise sets it to -1
-		try{
-			port = Integer.parseInt(indexOfColon == -1 ? "" : host.substring(indexOfColon));
-		}catch(Exception ex)
-		{
-			port = -1;
-		}
-		
-		host = indexOfColon == -1 ? host : host.substring(0, indexOfColon);
-			
-		//if port = -1, then no port was specified or was in bad format. Default port is used.
-		try{
-			socket = new Socket(host, port == -1 ? DEFAULT_HTTP_PORT : port);
-		}catch(IOException ex)
-		{
-			throw ex;
-		}
-		
-		return socket;
 	}
 
 	/**

@@ -24,7 +24,9 @@ public class UrlConnection {
 	
 	/**
 	 * Attempts to initialize the socket for the HttpRequest.  Returns true if socket was successful
-	 * @throws IOException, UnkownHostException if socket information is bad
+	 * @throws IOException if an IOException occurs
+	 * @throws UnkownHostException If the domain cannot be reached
+	 * @throws IllegalArgumentException If socket information is bad (0-65535)
 	 */
 	public void initializeSocket() throws IOException, UnknownHostException, IllegalArgumentException
 	{
@@ -36,7 +38,11 @@ public class UrlConnection {
 		}
 	}
 	
-	
+	/**
+	 * Given a full url, it sets the specified port if it exists, or a default of 80 
+	 * 
+	 * @param url A url from which the port must be derived, Expected in the format domain:[port]/object/path
+	 */
 	private void getPortFromUrl(String url)
 	{
 		String port;
@@ -56,10 +62,10 @@ public class UrlConnection {
 	}
 	
 	/**
-	 * Given a full url, it returns the host name attached with the port number
+	 * Given a full url, it sets the host name
 	 * 
-	 * @param url A url from which the host must be derived
-	 * @return host name of the url with attached port number in the form host:port
+	 *  Expected in the format domain:[port]/object/path
+	 * @param url A url from which the host must be derived, Expected in the format domain:[port]/object/path
 	 */
 	private void getHostnameFromUrl(String url)
 	{		
@@ -71,10 +77,9 @@ public class UrlConnection {
 	}
 	
 	/**
-	 * Given a full url, it returns the object path of the url
-	 * 
-	 * @param url a url from which the object path must be derived
-	 * @return the object path of the url in the form /location/to/object.obj
+	 * Given a full url, it sets the object path of the url
+	 *
+	 * @param url a url from which the object path must be derived,  Expected in the format domain:[port]/object/path
 	 */
 	private void getObjectPathFromUrl(String url)
 	{
@@ -98,6 +103,10 @@ public class UrlConnection {
 	}
 	public int get_Port() {
 		return _Port;
+	}
+	
+	public String get_StandardizedUrl(){
+		return _Host + _ObjectPath;
 	}
 	
 	

@@ -16,7 +16,7 @@ import html_client.HttpHeader;
 import html_client.UrlCache;
 import html_client.UrlCacheException;
 
-public class HtmlClientTests {
+public class UrlCacheTests {
 	private final String CACHE_DIR = System.getProperty("user.dir") + "\\cache\\";
 	
 	@Test
