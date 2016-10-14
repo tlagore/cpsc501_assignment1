@@ -32,10 +32,9 @@ import java.util.TimeZone;
  */
 public class UrlCache {
 	private HashMap<String, Long> _Catalog;
-	private final int DEFAULT_HTTP_PORT = 80;
 	private final String CACHE_DIR = System.getProperty("user.dir") + "\\cache\\";
-	private final TimeZone _SystemTimeZone = TimeZone.getDefault();
-	
+
+	private final int MAX_BYTES = 10*1024;
     /**
      * Default constructor to initialize data structures used for caching/etc
 	 * If the cache already exists then load it. If any errors then throw exception.
@@ -92,35 +91,42 @@ public class UrlCache {
      * @throws UrlCacheException if encounters any errors/exceptions
      */
 	public void getObject(String url) throws UrlCacheException {
-		byte[] input = new byte[10*1024];
 		UrlConnection connection = new UrlConnection(url);
-		Socket socket;
-		HttpHeader header;
-		InputStream inputStream;
 		PrintWriter outputStream;
-		String headerInfo = "", 
-			command;
+		String command;
 		
-		int amountRead;
-
 		//get GET or conditional GET command
-		command = getHttpGetCommand(url);
+		command = getHttpGetCommand(connection);
 		
 		try
 		{				
 			connection.initializeSocket();
-			socket = connection.get_Socket();
-			outputStream = new PrintWriter(socket.getOutputStream());
-			inputStream = socket.getInputStream();
+			outputStream = new PrintWriter(connection.get_Socket().getOutputStream());
+			
+			writeCommandToSocket(connection, outputStream, command);
+			readSocketResponse(connection);
 
-			//write command to socket outputstream
-			outputStream.print(command);
-			outputStream.print("Host: " + connection.get_Host() + "\r\n");
-			outputStream.print("\r\n");
-			outputStream.flush();
-			
-			amountRead = inputStream.read(input);
-			
+			outputStream.close();
+			connection.closeSocket();
+		}catch(Exception ex)
+		{
+			System.out.println("Error: " + ex.getMessage());
+			ex.printStackTrace();
+		}
+	}
+	
+	public void readSocketResponse(UrlConnection connection) throws Exception
+	{
+		byte[] input = new byte[MAX_BYTES];
+		Socket socket = connection.get_Socket();
+		String headerInfo = "";
+		InputStream inputStream;
+		int amountRead;
+		HttpHeader header;
+		
+		try{
+			inputStream = socket.getInputStream();
+			amountRead = inputStream.read(input);	
 			//if amountRead is not -1 or 0, there is a response
 			if(amountRead != -1 && amountRead != 0)
 			{
@@ -129,19 +135,7 @@ public class UrlCache {
 				
 				if (header.get_StatusCode() == 200)
 				{
-					File file = createDirectoryAndFile(connection.get_StandardizedUrl());
-					FileOutputStream fileOut = new FileOutputStream(file, true);
-					fileOut.write(input);
-					
-					//read/write rest of data to file
-					while((amountRead = inputStream.read(input)) != -1)
-					{
-						fileOut.write(input);
-					}
-					
-					fileOut.close();
-					_Catalog.put(connection.get_StandardizedUrl(), header.get_LastModified() == null ? 0 : header.get_LastModified());
-					writeCatalog();
+					writeObject(connection, header, input, inputStream);
 				}else if (header.get_StatusCode()  == 304)
 				{
 					System.out.println("Http: " + header.get_StatusCode()  + ". Same or newer file stored in cache.");
@@ -154,16 +148,44 @@ public class UrlCache {
 			{
 				System.out.println("No data read from response.");
 			}
-		
-			outputStream.close();
-			socket.close();
 		}catch(Exception ex)
 		{
-			System.out.println("Error: " + ex.getMessage());
-			ex.printStackTrace();
+			throw ex;
 		}
 	}
-
+	
+	public void writeObject(UrlConnection connection, HttpHeader header, byte[] input, InputStream inputStream) throws Exception
+	{
+		int amountRead;	
+		File file = createDirectoryAndFile(connection.get_StandardizedUrl());
+		
+		try{
+			FileOutputStream fileOut = new FileOutputStream(file, true);
+			fileOut.write(input);
+			
+			//read/write rest of data to file
+			while((amountRead = inputStream.read(input)) != -1)
+			{
+				fileOut.write(input);
+			}
+			
+			fileOut.close();
+			_Catalog.put(connection.get_StandardizedUrl(), header.get_LastModified() == null ? 0 : header.get_LastModified());
+			writeCatalog();
+		}catch(Exception ex)
+		{
+			throw ex;
+		}
+	}
+	
+	public void writeCommandToSocket(UrlConnection connection, PrintWriter outputStream, String command)
+	{
+			//write command to socket outputstream
+			outputStream.print(command);
+			outputStream.print("Host: " + connection.get_Host() + "\r\n");
+			outputStream.print("\r\n");
+			outputStream.flush();
+	}
 	/**
 	 * Receives a URL and checks if it exists in the cache.  If it does, it returns
 	 * a GET command with an if-modified-since conditional.  If it does not exist, a regular
@@ -172,24 +194,24 @@ public class UrlCache {
 	 * @param url The url of the get command in question
 	 * @return a regular GET command if the object is not in cache, or a GET if-modified-since if it is present
 	 */
-	private String getHttpGetCommand(String url) {
+	private String getHttpGetCommand(UrlConnection connection) {
 		String command;
 		Long lastModified;
 		
 		//if we have the item cached, conditional get, else regular 
 		try{
-			lastModified = getLastModified(url);
+			lastModified = getLastModified(connection.get_OriginalUrl());
 			
 			//Format properly date properly for command
 			SimpleDateFormat dateFormat = new SimpleDateFormat(
 			        "EEE, dd MMM yyyy HH:mm:ss zzz");
 			dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
 			Date dDate = new Date(lastModified);
-			command = "GET " + getObjectPathFromUrl(url) + " HTTP/1.1\r\nIf-Modified-Since: " + dateFormat.format(dDate) + "\r\n";
+			command = "GET " + connection.get_ObjectPath() + " HTTP/1.1\r\nIf-Modified-Since: " + dateFormat.format(dDate) + "\r\n";
 		}catch(UrlCacheException ex)
 		{
 			System.out.println(ex.getMessage());
-			command = "GET " + getObjectPathFromUrl(url) + " HTTP/1.1\r\n";
+			command = "GET " + connection.get_ObjectPath() + " HTTP/1.1\r\n";
 		}
 		return command;
 	}
@@ -274,7 +296,8 @@ public class UrlCache {
      * @throws UrlCacheException if the specified url is not in the cache, or there are other errors/exceptions
      */
 	public long getLastModified(String url) throws UrlCacheException {
-		String standardizedUrl = getHostnameFromUrl(url) + getObjectPathFromUrl(url);
+		UrlConnection connection = new UrlConnection(url);
+		String standardizedUrl = connection.get_StandardizedUrl();
 		if(_Catalog.containsKey(standardizedUrl))
 			return _Catalog.get(standardizedUrl);
 		else
@@ -310,32 +333,5 @@ public class UrlCache {
 		{
 			System.out.println("Error writing catalog to file.  Error:" + ex.getMessage() + ". Reopening this application will create new catalog.");
 		}
-	}
-	
-	/**
-	 * Given a full url, it returns the host name attached with the port number
-	 * 
-	 * @param url A url from which the host must be derived
-	 * @return host name of the url with attached port number in the form host:port
-	 */
-	private String getHostnameFromUrl(String url)
-	{
-		url = url.toLowerCase();
-		url = url.replace("https://", "").replace("http://", "");
-		url = url.substring(0, url.indexOf("/") == -1 ? url.length() - 1 : url.indexOf("/"));
-		return url;
-	}
-	
-	/**
-	 * Given a full url, it returns the object path of the url
-	 * 
-	 * @param url a url from which the object path must be derived
-	 * @return the object path of the url in the form /location/to/object.obj
-	 */
-	private String getObjectPathFromUrl(String url)
-	{
-		url = url.toLowerCase();
-		url = url.replace("https://", "").replace("http://", "");
-		return url.indexOf("/") == -1 ? "" : url.substring(url.indexOf("/"), url.length());
 	}
 }

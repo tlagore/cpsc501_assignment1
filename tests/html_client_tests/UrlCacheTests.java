@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.assertTrue;
 
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,6 +16,7 @@ import org.junit.Test;
 import html_client.HttpHeader;
 import html_client.UrlCache;
 import html_client.UrlCacheException;
+import html_client.UrlConnection;
 
 public class UrlCacheTests {
 	private final String CACHE_DIR = System.getProperty("user.dir") + "\\cache\\";
@@ -40,5 +42,34 @@ public class UrlCacheTests {
 			//Shouldn't get here
 			fail("Caught UrlCacheException");
 		}
+	}
+	
+	@Test
+	public void testwriteCommandToSocket()
+	{
+		String url = "people.ucalgary.ca/~mghaderi/test/uc.gif";
+		Path path = Paths.get(CACHE_DIR + url);
+		
+		try{
+		UrlCache cache = new UrlCache();
+		UrlConnection connection = new UrlConnection(url);
+		connection.initializeSocket();
+		
+		String command = "GET " + connection.get_ObjectPath() + " HTTP/1.1\r\n";
+		PrintWriter outputStream = new PrintWriter(connection.get_Socket().getOutputStream());
+		
+		cache.writeCommandToSocket(connection, outputStream, command);
+		cache.readSocketResponse(connection);
+		
+		assertTrue(Files.exists(path));
+		
+		outputStream.close();
+		connection.closeSocket();		
+		}catch(Exception ex)
+		{
+			fail();
+		}
+		
+	
 	}
 }

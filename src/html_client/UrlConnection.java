@@ -72,7 +72,7 @@ public class UrlConnection {
 		
 		//remove port if it exists
 		standardizedDomain = standardizedDomain.indexOf(":") == -1 ? standardizedDomain : standardizedDomain.substring(0, standardizedDomain.indexOf(":"));
-		_Host = url;
+		_Host = standardizedDomain;
 	}
 	
 	/**
@@ -83,7 +83,7 @@ public class UrlConnection {
 	private String standardizeDomain(String url)
 	{
 		String standardizedUrl = standardizeUrl(url);
-		return standardizedUrl = standardizedUrl.substring(0, standardizedUrl.indexOf("/") == -1 ? standardizedUrl.length() - 1 : standardizedUrl.indexOf("/"));		
+		return standardizedUrl.substring(0, standardizedUrl.indexOf("/") == -1 ? standardizedUrl.length() - 1 : standardizedUrl.indexOf("/"));		
 	}
 	
 	/**
@@ -107,6 +107,20 @@ public class UrlConnection {
 		String standardizedUrl = url.toLowerCase();
 		standardizedUrl = standardizedUrl.replace("https://", "").replace("http://", "");
 		return standardizedUrl;		
+	}
+	
+	/**
+	 * Attempts to close the socket
+	 * @throws IOException if an I/O error occurs when closing this socket.
+	 */
+	public void closeSocket() throws IOException
+	{
+		try{
+			_Socket.close();
+		}catch(IOException ex)
+		{
+			throw ex;
+		}
 	}
 	
 	public String get_OriginalUrl() {
