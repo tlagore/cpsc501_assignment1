@@ -83,7 +83,7 @@ public class UrlConnection {
 	private String standardizeDomain(String url)
 	{
 		String standardizedUrl = standardizeUrl(url);
-		return standardizedUrl.substring(0, standardizedUrl.indexOf("/") == -1 ? standardizedUrl.length() - 1 : standardizedUrl.indexOf("/"));		
+		return standardizedUrl.substring(0, standardizedUrl.indexOf("/") == -1 ? standardizedUrl.length() : standardizedUrl.indexOf("/"));		
 	}
 	
 	/**
