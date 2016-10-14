@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-public class HtmlHeader {
+public class HttpHeader {
 	private int _HttpStatusCode;
 	private Calendar _LastModified;
 	private String _HttpFileType;
@@ -15,7 +15,7 @@ public class HtmlHeader {
 	 * Constructor for HtmlHeader
 	 * @param headerText A formated string in the format of an HttpHeader. Assumed to be in proper format.
 	 */
-	public HtmlHeader(String headerText)
+	public HttpHeader(String headerText)
 	{
 		_HttpStatusCode = -1;
 		_HttpFileType = null;
