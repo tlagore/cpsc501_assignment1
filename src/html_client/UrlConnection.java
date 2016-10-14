@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class HttpRequest {
+public class UrlConnection {
 	private Socket _Socket;
 	private String _OriginalUrl;
 	private String _Host;
@@ -12,8 +12,7 @@ public class HttpRequest {
 	private int _Port;
 	private final int DEFAULT_HTTP_PORT = 80;
 	
-	
-	public HttpRequest(String url)
+	public UrlConnection(String url)
 	{
 		//not used, but maintained for future use if necessary
 		_OriginalUrl = url;
