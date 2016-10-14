@@ -35,11 +35,6 @@ public class UrlCache {
 	private final int DEFAULT_HTTP_PORT = 80;
 	private final String CACHE_DIR = System.getProperty("user.dir") + "\\cache\\";
 	private final TimeZone _SystemTimeZone = TimeZone.getDefault();
-		
-	private int _HttpStatusCode;
-	private Calendar _LastModified;
-	private String _HttpFileType;
-	private String _HttpEtag;
 	
     /**
      * Default constructor to initialize data structures used for caching/etc
@@ -99,6 +94,7 @@ public class UrlCache {
 	public void getObject(String url) throws UrlCacheException {
 		byte[] input = new byte[10*1024];
 		Socket socket;
+		HttpHeader header;
 		InputStream inputStream;
 		PrintWriter outputStream;
 		String headerInfo = "", 
@@ -131,9 +127,9 @@ public class UrlCache {
 			if(amountRead != -1 && amountRead != 0)
 			{
 				headerInfo = extractHeaderInfo(input);
-				extractHeaderContents(headerInfo);
+				header = new HttpHeader(headerInfo);
 				
-				if (_HttpStatusCode == 200)
+				if (header.get_StatusCode() == 200)
 				{
 					File file = createDirectoryAndFile(standardizedUrl);
 					FileOutputStream fileOut = new FileOutputStream(file, true);
@@ -146,15 +142,15 @@ public class UrlCache {
 					}
 					
 					fileOut.close();
-					_Catalog.put(standardizedUrl, _LastModified == null ? 0 : _LastModified.getTimeInMillis());
+					_Catalog.put(standardizedUrl, header.get_LastModified() == null ? 0 : header.get_LastModified());
 					writeCatalog();
-				}else if (_HttpStatusCode == 304)
+				}else if (header.get_StatusCode()  == 304)
 				{
-					System.out.println("Http: " + _HttpStatusCode + ". Same or newer file stored in cache.");
+					System.out.println("Http: " + header.get_StatusCode()  + ". Same or newer file stored in cache.");
 				}else
 				{
 					//some other Http code
-					System.out.println("Error. Http status code: " + _HttpStatusCode + ".");
+					System.out.println("Error. Http status code: " + header.get_StatusCode()  + ".");
 				}
 			}else
 			{
@@ -168,53 +164,6 @@ public class UrlCache {
 			System.out.println("Error: " + ex.getMessage());
 			ex.printStackTrace();
 		}
-	}
-	
-	private void extractHeaderContents(String headerText)
-	{
-		//set all to null, if any information is missing from header, value will be null
-				_HttpStatusCode = -1;
-				_HttpFileType = null;
-				_LastModified = null;
-				_HttpEtag = null;
-				
-				String[] lines = headerText.split(System.getProperty("line.separator"));
-				for(int i = 0; i < lines.length; i++)
-				{
-					//HTTP status message is in the form HTTP/1.1 XXX Readable Message
-					//By removing "HTTP/1.1 " then taking the next 3 characters and converting it to an int, we can obtain the status code
-					if (lines[i].contains("HTTP/1.1"))
-						_HttpStatusCode = Integer.parseInt(lines[i].replace("HTTP/1.1 ","").substring(0,3));	
-					
-					if(lines[i].contains("Content-Type: "))
-						_HttpFileType = lines[i].replace("Content-Type: ", "");
-					
-					if(lines[i].contains("ETag: "))
-						_HttpEtag = lines[i].replace("ETag: ", "");	
-					
-					if(lines[i].contains("Last-Modified: "))
-					{
-						try{
-							SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss");
-							format.setTimeZone(TimeZone.getTimeZone("GMT"));
-							String dateModified = lines[i].replaceAll("Last-Modified: ", "");
-							
-							_LastModified = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-							_LastModified.setTime(format.parse(dateModified));
-						}catch(ParseException ex)
-						{
-							_LastModified.setTimeInMillis(0);
-						}
-					}
-				}
-	}
-	
-	/**
-	 * Lists the contents of the Catalog to screen.
-	 */
-	public void listCatalogContents()
-	{
-		
 	}
 	
 	/**
