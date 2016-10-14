@@ -115,6 +115,13 @@ public class UrlCache {
 		}
 	}
 	
+	/**
+	 * Reads in the first 10240 bytes of the response of a socket who has assumed to have been written to.
+	 * Extracts the header information and analyzes it to determine next steps.
+	 * 
+	 * @param connection The connection that maintains the socket that was written to
+	 * @throws Exception IOException or FileNotFoundException if writing an object. Should not get FileNotFoundException as File is created.
+	 */
 	public void readSocketResponse(UrlConnection connection) throws Exception
 	{
 		byte[] input = new byte[MAX_BYTES];
@@ -154,6 +161,16 @@ public class UrlCache {
 		}
 	}
 	
+	/**
+	 * Takes a portion of a read in object and writes it to file. Attempts to check if there is more unread data
+	 * on the inputStream and appends it to the end of the file that is written.
+	 * 
+	 * @param connection the connection where the object was retrieved from
+	 * @param header the Header information of the get request
+	 * @param input the portion of the object that was read
+	 * @param inputStream the input stream of the socket that the request was read from
+	 * @throws Exception Possibly IOException or FileNotFound exception.  FileNotFound should not be thrown because file is created.
+	 */
 	public void writeObject(UrlConnection connection, HttpHeader header, byte[] input, InputStream inputStream) throws Exception
 	{
 		int amountRead;	
@@ -178,6 +195,13 @@ public class UrlCache {
 		}
 	}
 	
+	/**
+	 * Takes a command a UrlConnection and an outputStream and writes the command
+	 * 
+	 * @param connection the UrlConnection of the socket writing to
+	 * @param outputStream the Output stream of the socket writing to
+	 * @param command the Http command for the socket minus the host and new line to end the command
+	 */
 	public void writeCommandToSocket(UrlConnection connection, PrintWriter outputStream, String command)
 	{
 			//write command to socket outputstream
@@ -231,12 +255,14 @@ public class UrlCache {
 	{
 		String header = "";
 		String line;
+		//make an InputStream for the byte data array
 		InputStream inputStream = new ByteArrayInputStream(data);
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		int dataLength = data.length;
 		
 		try
 		{
+			//read in until we find new line to signify end of header
 			line = reader.readLine();
 			while (line != null && !line.isEmpty())
 			{
@@ -244,14 +270,17 @@ public class UrlCache {
 				line  = reader.readLine();
 			}
 			
-			// add 2 to account for \r\n line that was not read in
+			// find number of bytes that we read in, add 2 to account for \r\n line that was not read in
 			int bytesInHeader = header.getBytes("UTF-8").length + 2;
 			
+			//move the information in the data array back by the number of bytes in the header to erase
+			//header data and maintain object data (if any).
 			for (int i = 0; i < (dataLength - bytesInHeader); i++)
 			{
 				data[i] = data[i + bytesInHeader];
 			}
 			
+			//clear data to the end of the data array to account for shift
 			for (int i = (dataLength - bytesInHeader); i < dataLength; i++)
 			{
 				data[i] = 0;
