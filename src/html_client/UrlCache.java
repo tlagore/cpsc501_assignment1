@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -251,14 +252,35 @@ public class UrlCache {
 	 * @param data The http get response in byte format
 	 * @return returns the header information in string format
 	 */
-	private String extractHeaderInfo(byte[] data)
+	public String extractHeaderInfo(byte[] data)
+	{
+		int bytesInHeader;
+		String header = extractHeaderStringFromByteArray(data);
+		try{
+			//add 2 bytes to account for unread \r\n
+			bytesInHeader = header.getBytes("UTF-8").length + 2;
+			shiftByteArrayContents(data, bytesInHeader);
+		} catch (UnsupportedEncodingException ex)
+		{
+			System.out.println("Error removing header from byte array: " + ex.getMessage());
+		}
+	
+		return header;
+	}
+	
+	/**
+	 * Takes in a byte array considered to be an HTTP response to a GET command with the header at the top and extracts
+	 * the header components, returning it in String format.
+	 * 
+	 * @param data the byte array containing the information
+	 * @return The header information of the byte array
+	 */
+	public String extractHeaderStringFromByteArray(byte[] data)
 	{
 		String header = "";
 		String line;
-		//make an InputStream for the byte data array
 		InputStream inputStream = new ByteArrayInputStream(data);
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-		int dataLength = data.length;
 		
 		try
 		{
@@ -269,29 +291,37 @@ public class UrlCache {
 				header += line + "\r\n";
 				line  = reader.readLine();
 			}
-			
-			// find number of bytes that we read in, add 2 to account for \r\n line that was not read in
-			int bytesInHeader = header.getBytes("UTF-8").length + 2;
-			
-			//move the information in the data array back by the number of bytes in the header to erase
-			//header data and maintain object data (if any).
-			for (int i = 0; i < (dataLength - bytesInHeader); i++)
-			{
-				data[i] = data[i + bytesInHeader];
-			}
-			
-			//clear data to the end of the data array to account for shift
-			for (int i = (dataLength - bytesInHeader); i < dataLength; i++)
-			{
-				data[i] = 0;
-			}
 		}catch(IOException ex)
 		{
 			System.out.println("Error: " + ex.getMessage());
 		}
 		
-		
 		return header;
+	}
+	
+	/**
+	 * Takes in a byte array and a number of bytes then shifts the contents of the array the specified number of bytes,
+	 * destroying the information at the front of the array. It then sets the end "numBytes" to 0;
+	 * 
+	 * @param data the array that needs to have its contents shifted
+	 * @param numBytes the number of bytes to shift the contents of the array
+	 */
+	public void shiftByteArrayContents(byte[] data, int numBytes)
+	{
+		//ensure supplied number of bytes does not exceed data length
+		if (numBytes > data.length)
+			numBytes = data.length;
+			
+		for (int i = 0; i < (data.length - numBytes); i++)
+		{
+			data[i] = data[i + numBytes];
+		}
+		
+		for (int i = (data.length - numBytes); i < data.length; i++)
+		{
+			data[i] = 0;
+		}
+		
 	}
 	
 	/**

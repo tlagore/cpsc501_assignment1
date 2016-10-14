@@ -69,7 +69,111 @@ public class UrlCacheTests {
 		{
 			fail();
 		}
-		
+	}
 	
+	@Test
+	public void testExtractHeaderInfo() {
+		try{
+			UrlCache cache = new UrlCache();
+			
+			//Test 1 
+			String str = "HTTP/1.1 200 OK\r\nLast-Modified:SomeDate\r\nAnother field: something\r\n\r\nBeginning of data";
+			String header;
+			byte[] arr1 = str.getBytes();
+			
+			//get what should be header info
+			header = cache.extractHeaderInfo(arr1);
+			
+			//assert that it's as we suspect
+			assertEquals(header, "HTTP/1.1 200 OK\r\nLast-Modified:SomeDate\r\nAnother field: something\r\n");
+			
+			byte[] remainingInfo = "Beginning of data".getBytes();
+			//assert that every byte of the beginning of the original array is as expected.
+			for(int i = 0; i < remainingInfo.length; i++)
+			{
+				assertEquals(remainingInfo[i], arr1[i]);
+			}
+			
+			//Test 2
+			String str2 = "HTTP/1.1 304 NOT MODIFIED\r\nLast-Modified:SomeDate\r\n\r\nEarly end Another field: something\r\n\r\nBeginning of data";
+			String header2;
+			byte[] arr2 = str2.getBytes();
+			
+			//get what should be header info
+			header2 = cache.extractHeaderInfo(arr2);
+			
+			//assert that it's as we suspect
+			assertEquals(header2, "HTTP/1.1 304 NOT MODIFIED\r\nLast-Modified:SomeDate\r\n");
+			
+			byte[] remainingInfo2 = "Early end Another field: something\r\n\r\nBeginning of data".getBytes();
+			//assert that every byte of the beginning of the original array is as expected.
+			for(int i = 0; i < remainingInfo2.length; i++)
+			{
+				assertEquals(remainingInfo2[i], arr2[i]);
+			}
+		}catch(Exception ex)
+		{
+			fail();
+		}
+	}
+
+	@Test
+	public void testExtractHeaderStringFromByteArray() {
+		try{
+			UrlCache cache = new UrlCache();
+			String str = "HTTP/1.1 200 OK\r\nLast-Modified:SomeDate\r\nAnother field: something\r\n\r\nBeginning of data";
+			String header;
+			byte[] arr1 = str.getBytes();
+			byte[] arr2 = str.getBytes();
+			
+			//get what should be header info
+			header = cache.extractHeaderStringFromByteArray(arr1);
+			//assert that it's as we suspect
+			assertEquals(header, "HTTP/1.1 200 OK\r\nLast-Modified:SomeDate\r\nAnother field: something\r\n");
+			
+			//byte array unchanged
+			for(int i = 0; i < arr1.length; i++)
+				assertEquals(arr1[i], arr2[i]);
+			
+		}catch(Exception ex)
+		{
+			fail();
+		}
+	}
+
+	@Test
+	public void testShiftByteArrayContents() {
+		try{
+			UrlCache cache = new UrlCache();
+			byte[] arr1 = new byte[] {'a','b','c','d','e','f','g'};
+			
+			cache.shiftByteArrayContents(arr1, 3);
+			
+			assertEquals(arr1[0],'d');
+			assertEquals(arr1[1],'e');
+			assertEquals(arr1[2],'f');
+			assertEquals(arr1[3],'g');
+			assertEquals(arr1[4], 0);
+			assertEquals(arr1[5], 0);
+			
+			//too many bytes
+			byte arr2[] = new byte[] {'a','b','c','d','e' };
+			
+			cache.shiftByteArrayContents(arr2, 50);
+			
+			assertEquals(arr2[0], 0);
+			assertEquals(arr2[1], 0);
+			assertEquals(arr2[2], 0);
+			assertEquals(arr2[3], 0);
+			assertEquals(arr2[4], 0);
+
+//			for(int i = 0; i < remainingInfo2.length; i++)
+//			{
+//				assertEquals(remainingInfo2[i], arr2[i]);
+//			}
+		}catch(Exception ex)
+		{
+			fail();
+		}
 	}
 }
