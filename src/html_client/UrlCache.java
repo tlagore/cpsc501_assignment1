@@ -108,6 +108,7 @@ public class UrlCache {
 		
 		try
 		{				
+			connection.initializeSocket();
 			socket = connection.get_Socket();
 			outputStream = new PrintWriter(socket.getOutputStream());
 			inputStream = socket.getInputStream();

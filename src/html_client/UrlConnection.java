@@ -46,13 +46,12 @@ public class UrlConnection {
 	private void getPortFromUrl(String url)
 	{
 		String port;
-		url = url.toLowerCase();
-		url = url.replace("https://", "").replace("http://", "");
-		url = url.substring(0, url.indexOf("/") == -1 ? url.length() - 1 : url.indexOf("/"));	
-		int indexOfColon = url.indexOf(":");
+		String standardizedDomain = standardizeDomain(url);	
+		
+		int indexOfColon = standardizedDomain.indexOf(":");
 		
 		try{
-			port = url.substring(indexOfColon + 1);
+			port = standardizedDomain.substring(indexOfColon + 1);
 			_Port = Integer.parseInt(port);
 		}catch(Exception ex)
 		{
@@ -69,11 +68,22 @@ public class UrlConnection {
 	 */
 	private void getHostnameFromUrl(String url)
 	{		
-		url = url.toLowerCase();
-		url = url.replace("https://", "").replace("http://", "");
-		url = url.substring(0, url.indexOf("/") == -1 ? url.length() - 1 : url.indexOf("/"));		
-		url = url.indexOf(":") == -1 ? url : url.substring(0, url.indexOf(":"));
+		String standardizedDomain = standardizeDomain(url);	
+		
+		//remove port if it exists
+		standardizedDomain = standardizedDomain.indexOf(":") == -1 ? standardizedDomain : standardizedDomain.substring(0, standardizedDomain.indexOf(":"));
 		_Host = url;
+	}
+	
+	/**
+	 * Standardizes a url to just the domain information, ie, domain:(port)
+	 * @param url The url from which the standardized domain must be derived
+	 * @return url stripped of http, https, sent to lower case, and object path removed (if it exists)
+	 */
+	private String standardizeDomain(String url)
+	{
+		String standardizedUrl = standardizeUrl(url);
+		return standardizedUrl = standardizedUrl.substring(0, standardizedUrl.indexOf("/") == -1 ? standardizedUrl.length() - 1 : standardizedUrl.indexOf("/"));		
 	}
 	
 	/**
@@ -83,9 +93,20 @@ public class UrlConnection {
 	 */
 	private void getObjectPathFromUrl(String url)
 	{
-		url = url.toLowerCase();
-		url = url.replace("https://", "").replace("http://", "");
-		_ObjectPath = url.indexOf("/") == -1 ? "" : url.substring(url.indexOf("/"), url.length());
+		String standardizedUrl = standardizeUrl(url);
+		_ObjectPath = standardizedUrl.indexOf("/") == -1 ? "" : standardizedUrl.substring(standardizedUrl.indexOf("/"), standardizedUrl.length());
+	}
+	
+	/**
+	 * Standardizes a url to remove http, https and ensure lower case
+	 * @param url The url that needs to be standardized in the form http(s)://domain:(port)/object/path
+	 * @return url stripped of http, https, and sent to lower case
+	 */
+	private String standardizeUrl(String url)
+	{
+		String standardizedUrl = url.toLowerCase();
+		standardizedUrl = standardizedUrl.replace("https://", "").replace("http://", "");
+		return standardizedUrl;		
 	}
 	
 	public String get_OriginalUrl() {
