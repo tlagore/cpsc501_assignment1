@@ -26,7 +26,7 @@ public class UrlConnection {
 	 * Attempts to initialize the socket for the HttpRequest.  Returns true if socket was successful
 	 * @throws IOException, UnkownHostException if socket information is bad
 	 */
-	public void initializeSocket() throws IOException, UnknownHostException
+	public void initializeSocket() throws IOException, UnknownHostException, IllegalArgumentException
 	{
 		try{
 			_Socket = new Socket(_Host, _Port);
@@ -39,13 +39,15 @@ public class UrlConnection {
 	
 	private void getPortFromUrl(String url)
 	{
+		String port;
 		url = url.toLowerCase();
 		url = url.replace("https://", "").replace("http://", "");
 		url = url.substring(0, url.indexOf("/") == -1 ? url.length() - 1 : url.indexOf("/"));	
 		int indexOfColon = url.indexOf(":");
 		
 		try{
-			_Port = Integer.parseInt(indexOfColon == -1 ? "" : url.substring(indexOfColon));
+			port = url.substring(indexOfColon + 1);
+			_Port = Integer.parseInt(port);
 		}catch(Exception ex)
 		{
 			//failed to parseInt, bad port format for url, default to 80
