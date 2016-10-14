@@ -28,7 +28,5 @@ public class Main {
 		catch (UrlCacheException e) {
 			System.out.println("There was a problem: " + e.getMessage());
 		}
-		
 	}
-	
 }
