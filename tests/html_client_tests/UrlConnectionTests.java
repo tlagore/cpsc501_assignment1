@@ -14,7 +14,8 @@ public class UrlConnectionTests {
 	public void testUrlRequest() {
 		UrlConnection request = new UrlConnection("https://www.hello.com:40/object/path.html");
 		UrlConnection request2 = new UrlConnection("http://my.domain.co/no/port.gif");
-		UrlConnection request3 = new UrlConnection("another.good.domain/obj.php");
+		UrlConnection request3 = new UrlConnection("another.domain/obj.php");
+		UrlConnection request4 = new UrlConnection("no.object.path");
 		
 		assertEquals(request.get_Host(), "www.hello.com");
 		assertEquals(request.get_ObjectPath(), "/object/path.html");
@@ -24,9 +25,15 @@ public class UrlConnectionTests {
 		assertEquals(request2.get_ObjectPath(), "/no/port.gif");
 		assertEquals(request2.get_Port(), 80);
 		
-		assertEquals(request3.get_Host(), "another.good.domain");
+		assertEquals(request3.get_Host(), "another.domain");
 		assertEquals(request3.get_ObjectPath(), "/obj.php");
 		assertEquals(request3.get_Port(), 80);
+		
+		assertEquals(request4.get_Host(), "no.object.path");
+		assertEquals(request4.get_ObjectPath(), "");
+		assertEquals(request4.get_Port(), 80);
+		
+		
 	}
 	
 	@Test
